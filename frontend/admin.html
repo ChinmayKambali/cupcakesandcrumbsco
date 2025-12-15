@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cupcakes & Crumbs Co – Admin</title>
+</head>
+<body>
+  <h1>Admin – Orders</h1>
+
+  <div>
+    <label>Admin key:</label>
+    <input type="password" id="admin-key" />
+
+    <label style="margin-left: 12px;">From:</label>
+    <input type="date" id="from-date" />
+
+    <label style="margin-left: 12px;">To:</label>
+    <input type="date" id="to-date" />
+
+    <button id="load-btn">Load Orders and Analytics</button>
+  </div>
+
+  <div id="orders" style="margin-top: 16px;"></div>
+
+  <div id="analytics-container" style="display: none; margin-top: 24px;">
+    <h2>Analytics</h2>
+    <div id="analytics-summary"></div>
+    <h3>Orders per week</h3>
+    <div id="analytics-weeks"></div>
+    <h3>Top products</h3>
+    <div id="analytics-products"></div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+
+    async function loadOrdersAndAnalytics() {
+      const key = document.getElementById("admin-key").value;
+      document.getElementById("analytics-container").style.display = "block";
+      await Promise.all([loadOrders(key), loadAnalytics(key)]);
+    }
+
+    async function loadOrders(adminKey) {
+      const ordersDiv = document.getElementById("orders");
+      ordersDiv.innerHTML = "Loading orders...";
+
+      const resp = await fetch(`${API_BASE}/api/admin/orders`, {
+        headers: {
+          "x-admin-key": adminKey,
+        },
+      });
+
+      if (resp.status === 401) {
+        ordersDiv.textContent = "Unauthorized – wrong admin key.";
+        return;
+      }
+
+      const data = await resp.json();
+      ordersDiv.innerHTML = "";
+
+      if (!data.orders || data.orders.length === 0) {
+        ordersDiv.textContent = "No pending orders.";
+        return;
+      }
+
+      data.orders.forEach((order) => {
+        const wrapper = document.createElement("div");
+        wrapper.style.border = "1px solid #ccc";
+        wrapper.style.padding = "8px";
+        wrapper.style.margin = "8px 0";
+
+        const header = document.createElement("div");
+        const noteText = order.note ? `<br/><em>Note: ${order.note}</em>` : "";
+        header.innerHTML = `
+          <strong>Order #${order.order_id}</strong><br/>
+          ${order.customer_name} (${order.phone})<br/>
+          ${order.address}<br/>
+          ${order.created_at}
+          ${noteText}
+        `;
+        wrapper.appendChild(header);
+
+        const list = document.createElement("ul");
+        order.items.forEach((item) => {
+          const li = document.createElement("li");
+          const flavour = item.flavour ? ` (${item.flavour})` : "";
+          li.textContent = `${item.product_name}${flavour} x ${item.quantity} – ₹${item.line_total}`;
+          list.appendChild(li);
+        });
+        wrapper.appendChild(list);
+
+        const doneBtn = document.createElement("button");
+        doneBtn.textContent = "Mark as completed";
+        doneBtn.onclick = async () => {
+          await fetch(
+            `${API_BASE}/api/admin/orders/${order.order_id}/complete`,
+            {
+              method: "POST",
+              headers: {
+                "x-admin-key": adminKey,
+              },
+            }
+          );
+          loadOrdersAndAnalytics();
+        };
+        wrapper.appendChild(doneBtn);
+
+        ordersDiv.appendChild(wrapper);
+      });
+    }
+
+    async function loadAnalytics(adminKey) {
+      const summaryDiv = document.getElementById("analytics-summary");
+      const weeksDiv = document.getElementById("analytics-weeks");
+      const productsDiv = document.getElementById("analytics-products");
+
+      summaryDiv.textContent = "Loading analytics...";
+      weeksDiv.innerHTML = "";
+      productsDiv.innerHTML = "";
+
+      const fromDate = document.getElementById("from-date").value;
+      const toDate = document.getElementById("to-date").value;
+
+      const params = new URLSearchParams();
+      if (fromDate) params.append("from_date", fromDate);
+      if (toDate) params.append("to_date", toDate);
+
+      const url =
+        params.toString().length > 0
+          ? `${API_BASE}/api/admin/analytics?${params.toString()}`
+          : `${API_BASE}/api/admin/analytics`;
+
+      const resp = await fetch(url, {
+        headers: {
+          "x-admin-key": adminKey,
+        },
+      });
+
+      if (resp.status === 401) {
+        summaryDiv.textContent = "Unauthorized – wrong admin key.";
+        return;
+      }
+
+      const data = await resp.json();
+
+      const totalOrders = data.summary.total_orders;
+      const totalRevenue = data.summary.total_revenue;
+      summaryDiv.textContent = `Total orders: ${totalOrders} | Total revenue: ₹${totalRevenue}`;
+
+      if (data.orders_per_week && data.orders_per_week.length > 0) {
+        const table = document.createElement("table");
+        table.border = "1";
+        const headerRow = document.createElement("tr");
+        ["Week starting", "Orders", "Revenue"].forEach((h) => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        table.appendChild(headerRow);
+
+        data.orders_per_week.forEach((row) => {
+          const tr = document.createElement("tr");
+          const tdWeek = document.createElement("td");
+          tdWeek.textContent = row.week_start;
+          const tdCount = document.createElement("td");
+          tdCount.textContent = row.order_count;
+          const tdRev = document.createElement("td");
+          tdRev.textContent = `₹${row.revenue}`;
+          tr.appendChild(tdWeek);
+          tr.appendChild(tdCount);
+          tr.appendChild(tdRev);
+          table.appendChild(tr);
+        });
+
+        weeksDiv.appendChild(table);
+      } else {
+        weeksDiv.textContent = "No data yet.";
+      }
+
+      if (data.top_products && data.top_products.length > 0) {
+        const table = document.createElement("table");
+        table.border = "1";
+        const headerRow = document.createElement("tr");
+        ["Product", "Quantity sold", "Revenue"].forEach((h) => {
+          const th = document.createElement("th");
+          th.textContent = h;
+          headerRow.appendChild(th);
+        });
+        table.appendChild(headerRow);
+
+        data.top_products.forEach((p) => {
+          const tr = document.createElement("tr");
+          const tdName = document.createElement("td");
+          const flavour = p.flavour ? ` (${p.flavour})` : "";
+          tdName.textContent = `${p.product_name}${flavour}`;
+          const tdQty = document.createElement("td");
+          tdQty.textContent = p.total_quantity;
+          const tdRev = document.createElement("td");
+          tdRev.textContent = `₹${p.total_revenue}`;
+          tr.appendChild(tdName);
+          tr.appendChild(tdQty);
+          tr.appendChild(tdRev);
+          table.appendChild(tr);
+        });
+
+        productsDiv.appendChild(table);
+      } else {
+        productsDiv.textContent = "No data yet.";
+      }
+    }
+
+    document
+      .getElementById("load-btn")
+      .addEventListener("click", () => loadOrdersAndAnalytics());
+  </script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cupcakes & Crumbs Co</title>
+
+  <style>
+    body {
+      max-width: 800px;
+      margin: 40px auto;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      line-height: 1.5;
+    }
+
+    h1 {
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      margin-top: 32px;
+      margin-bottom: 12px;
+    }
+
+    .menu-row,
+    .cart-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .menu-text,
+    .cart-text {
+      flex: 1;
+    }
+
+    button {
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+
+    .cart-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    form div {
+      margin-bottom: 8px;
+    }
+
+    input,
+    textarea {
+      padding: 4px 6px;
+      width: 250px;
+      max-width: 100%;
+      font-family: inherit;
+    }
+  </style>
+
+  <!-- Razorpay Checkout JS -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+  <h1>Cupcakes & Crumbs Co</h1>
+
+  <h2>Menu</h2>
+  <div id="menu"></div>
+
+  <h2>Your Cart</h2>
+  <div id="cart"></div>
+  <p id="cart-total">Total: ₹0</p>
+
+  <h2>Your Details</h2>
+  <form id="order-form">
+    <div>
+      <label for="customer-name">Name:</label><br />
+      <input type="text" id="customer-name" required />
+    </div>
+    <div>
+      <label for="phone">Phone:</label><br />
+      <input type="text" id="phone" required />
+    </div>
+    <div>
+      <label for="address">Address:</label><br />
+      <textarea id="address" rows="3" required></textarea>
+    </div>
+    <div>
+      <label for="note">Note for baker (optional):</label><br />
+      <textarea id="note" rows="2"></textarea>
+    </div>
+    <button type="submit">Pay & Place Order</button>
+  </form>
+
+  <p id="order-result"></p>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+
+    let products = [];
+    let cart = {}; // key: product_id, value: quantity
+
+    function renderMenu() {
+      const container = document.getElementById("menu");
+      container.innerHTML = "";
+
+      products.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "menu-row";
+
+        const text = document.createElement("span");
+        text.className = "menu-text";
+        text.textContent = `${item.name} (${item.flavour}) - pack of ${item.pack_size} - ₹${item.price}`;
+
+        const addBtn = document.createElement("button");
+        addBtn.textContent = "Add to cart";
+        addBtn.onclick = () => {
+          const current = cart[item.id] || 0;
+          cart[item.id] = current + 1;
+          renderCart();
+        };
+
+        row.appendChild(text);
+        row.appendChild(addBtn);
+        container.appendChild(row);
+      });
+    }
+
+    function renderCart() {
+      const cartDiv = document.getElementById("cart");
+      const totalP = document.getElementById("cart-total");
+      cartDiv.innerHTML = "";
+
+      let total = 0;
+
+      Object.entries(cart).forEach(([productId, qty]) => {
+        const prod = products.find((p) => p.id === Number(productId));
+        if (!prod) return;
+
+        const lineTotal = prod.price * qty;
+        total += lineTotal;
+
+        const row = document.createElement("div");
+        row.className = "cart-row";
+
+        const text = document.createElement("span");
+        text.className = "cart-text";
+        text.textContent = `${prod.name} (${prod.flavour}) x ${qty} = ₹${lineTotal}`;
+
+        const btnWrap = document.createElement("div");
+        btnWrap.className = "cart-buttons";
+
+        const minusBtn = document.createElement("button");
+        minusBtn.textContent = "-";
+        minusBtn.onclick = () => {
+          if (cart[productId] > 1) {
+            cart[productId] -= 1;
+          } else {
+            delete cart[productId];
+          }
+          renderCart();
+        };
+
+        const plusBtn = document.createElement("button");
+        plusBtn.textContent = "+";
+        plusBtn.onclick = () => {
+          cart[productId] = (cart[productId] || 0) + 1;
+          renderCart();
+        };
+
+        btnWrap.appendChild(minusBtn);
+        btnWrap.appendChild(plusBtn);
+
+        row.appendChild(text);
+        row.appendChild(btnWrap);
+        cartDiv.appendChild(row);
+      });
+
+      totalP.textContent = `Total: ₹${total}`;
+    }
+
+    async function loadMenu() {
+      const resp = await fetch(`${API_BASE}/api/menu`);
+      const data = await resp.json();
+      products = data.items;
+      renderMenu();
+      renderCart();
+    }
+
+    async function submitOrder(event) {
+      event.preventDefault();
+      const resultP = document.getElementById("order-result");
+      resultP.textContent = "";
+
+      const items = Object.entries(cart).map(([productId, qty]) => ({
+        product_id: Number(productId),
+        quantity: qty,
+      }));
+
+      if (items.length === 0) {
+        resultP.textContent = "Your cart is empty.";
+        return;
+      }
+
+      const customer_name = document.getElementById("customer-name").value;
+      const phone = document.getElementById("phone").value;
+      const address = document.getElementById("address").value;
+      const note = document.getElementById("note").value;
+
+      // 1) Ask backend to create Razorpay TEST order
+      const paymentResp = await fetch(`${API_BASE}/api/payment/order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_name,
+          phone,
+          address,
+          note,
+          items,
+        }),
+      });
+
+      const paymentData = await paymentResp.json();
+
+      if (!paymentResp.ok || paymentData.error) {
+        let msg = "Error creating payment order.";
+        if (
+          paymentData.detail &&
+          Array.isArray(paymentData.detail) &&
+          paymentData.detail.length > 0
+        ) {
+          const rawMsg = paymentData.detail[0].msg;
+          msg = rawMsg.split(",").pop().trim();
+        } else if (paymentData.error) {
+          msg = paymentData.error;
+        }
+        resultP.textContent = "Error: " + msg;
+        return;
+      }
+
+      const { razorpay_key_id, razorpay_order_id, amount, currency } =
+        paymentData;
+
+      // 2) Open Razorpay Checkout (TEST mode, UPI only)
+      const options = {
+        key: razorpay_key_id,
+        amount: amount * 100, // paise; backend used rupees for total
+        currency: currency,
+        name: "Cupcakes & Crumbs Co",
+        description: "Order payment",
+        order_id: razorpay_order_id,
+        prefill: {
+          name: customer_name,
+          contact: phone,
+        },
+        theme: {
+          color: "#ff8fb1",
+        },
+        method: {
+          upi: true,
+          card: false,
+          netbanking: false,
+          wallet: false,
+          emi: false,
+          paylater: false,
+        },
+        handler: async function (response) {
+          // Payment success in TEST mode
+          const orderResp = await fetch(`${API_BASE}/api/orders`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_name,
+              phone,
+              address,
+              note,
+              items,
+            }),
+          });
+          const orderData = await orderResp.json();
+
+          if (!orderResp.ok || orderData.error) {
+            resultP.textContent =
+              "Payment succeeded but error saving order: " +
+              (orderData.error || "Unknown error");
+            return;
+          }
+
+          resultP.textContent = `Payment successful! Order placed. Your order ID is ${orderData.order_id}.`;
+          cart = {};
+          renderCart();
+          document.getElementById("order-form").reset();
+          document.getElementById("note").value = "";
+        },
+        modal: {
+          ondismiss: function () {
+            resultP.textContent = "Payment cancelled.";
+          },
+        },
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+    }
+
+    document
+      .getElementById("order-form")
+      .addEventListener("submit", submitOrder);
+
+    loadMenu();
+  </script>
+</body>
+</html>
