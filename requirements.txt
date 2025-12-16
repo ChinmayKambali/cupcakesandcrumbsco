@@ -4,3 +4,4 @@ psycopg2-binary==2.9.10
 python-dotenv==1.0.1
 razorpay==1.4.2
 setuptools
+resend==2.4.0
