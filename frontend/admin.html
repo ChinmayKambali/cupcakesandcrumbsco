@@ -3,215 +3,428 @@
 <head>
   <meta charset="UTF-8" />
   <title>Cupcakes & Crumbs Co – Admin</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 40px 60px;
+      font-family: "Gochi Hand", system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #ffe1ec 0%, #ffd3e0 40%, #f9c1d0 100%);
+      color: #2b1b1f;
+      box-sizing: border-box;
+    }
+
+    .page {
+      border: 2px solid #b98ad0;
+      padding: 30px 40px 40px;
+      max-width: 1100px;
+      margin: 0 auto;
+      background: rgba(255, 250, 252, 0.7);
+    }
+
+    h1 {
+      margin: 0 0 24px;
+      font-size: 32px;
+    }
+
+    h2 {
+      margin: 0 0 16px;
+      font-size: 26px;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      font-size: 18px;
+    }
+
+    .top-bar label {
+      margin-right: 6px;
+    }
+
+    .top-bar input {
+      padding: 2px 6px;
+      border: 1px solid #444;
+      background: transparent;
+      font-family: inherit;
+      font-size: 16px;
+    }
+
+    .load-btn {
+      padding: 4px 10px;
+      border: 1px solid #444;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 16px;
+    }
+
+    .load-btn:hover {
+      background: #ffd8e6;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 40px;
+      margin-top: 10px;
+    }
+
+    /* Orders section */
+
+    #orders-container {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .order-card {
+      border: 2px solid #2b1b1f;
+      padding: 10px 14px 12px;
+      font-size: 16px;
+      background: rgba(255, 248, 252, 0.9);
+    }
+
+    .order-card h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+    }
+
+    .order-line {
+      margin: 0;
+    }
+
+    .order-items {
+      margin: 6px 0 6px 14px;
+      padding-left: 0;
+    }
+
+    .order-items li {
+      margin-bottom: 2px;
+    }
+
+    .complete-btn {
+      margin-top: 6px;
+      padding: 2px 10px;
+      border: 1px solid #444;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .complete-btn:hover {
+      background: #ffd8e6;
+    }
+
+    /* Analytics section */
+
+    .analytics-summary {
+      font-size: 18px;
+      margin-bottom: 18px;
+    }
+
+    .analytics-summary p {
+      margin: 0 0 4px;
+    }
+
+    .analytics-blocks {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .analytics-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 16px;
+    }
+
+    .analytics-table th,
+    .analytics-table td {
+      border: 1px solid #2b1b1f;
+      padding: 4px 8px;
+      text-align: left;
+    }
+
+    .analytics-table th {
+      text-align: center;
+    }
+
+    .section-title {
+      margin-bottom: 6px;
+      font-size: 20px;
+    }
+
+    #admin-message {
+      margin-top: 10px;
+      min-height: 18px;
+      font-size: 16px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Admin – Orders</h1>
+  <div class="page">
+    <h1>Admin - Orders</h1>
 
-  <div>
-    <label>Admin key:</label>
-    <input type="password" id="admin-key" />
+    <div class="top-bar">
+      <div>
+        <label for="admin-key">Admin key:</label>
+        <input type="password" id="admin-key" />
+      </div>
 
-    <label style="margin-left: 12px;">From:</label>
-    <input type="date" id="from-date" />
+      <div>
+        <label for="from-date">From: </label>
+        <input type="date" id="from-date" />
+      </div>
 
-    <label style="margin-left: 12px;">To:</label>
-    <input type="date" id="to-date" />
+      <div>
+        <label for="to-date">To: </label>
+        <input type="date" id="to-date" />
+      </div>
 
-    <button id="load-btn">Load Orders and Analytics</button>
-  </div>
+      <button class="load-btn" onclick="loadAll()">Load Orders</button>
+    </div>
 
-  <div id="orders" style="margin-top: 16px;"></div>
+    <div id="admin-message"></div>
 
-  <div id="analytics-container" style="display: none; margin-top: 24px;">
-    <h2>Analytics</h2>
-    <div id="analytics-summary"></div>
-    <h3>Orders per week</h3>
-    <div id="analytics-weeks"></div>
-    <h3>Top products</h3>
-    <div id="analytics-products"></div>
+    <div class="layout">
+      <!-- Orders column -->
+      <section>
+        <h2>Orders</h2>
+        <div id="orders-container"></div>
+      </section>
+
+      <!-- Analytics column -->
+      <section>
+        <h2>Analytics</h2>
+
+        <div class="analytics-summary" id="analytics-summary">
+          <p>Total Orders: -</p>
+          <p>Total Revenue: -</p>
+        </div>
+
+        <div class="analytics-blocks">
+          <div>
+            <div class="section-title">Orders per Week</div>
+            <table class="analytics-table" id="weekly-table">
+              <thead>
+                <tr>
+                  <th>Week Starting</th>
+                  <th>Orders</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div>
+            <div class="section-title">Top Products</div>
+            <table class="analytics-table" id="products-table">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th>Revenue</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
   </div>
 
   <script>
-    const API_BASE = "http://127.0.0.1:8000";
+    const API_BASE = "http://127.0.0.1:8000"; // change to Render URL after deploy
 
-    async function loadOrdersAndAnalytics() {
+    function setMessage(text) {
+      document.getElementById("admin-message").textContent = text || "";
+    }
+
+    function getAuthHeaders() {
       const key = document.getElementById("admin-key").value;
-      document.getElementById("analytics-container").style.display = "block";
-      await Promise.all([loadOrders(key), loadAnalytics(key)]);
+      return { "X-Admin-Key": key };
     }
 
-    async function loadOrders(adminKey) {
-      const ordersDiv = document.getElementById("orders");
-      ordersDiv.innerHTML = "Loading orders...";
-
-      const resp = await fetch(`${API_BASE}/api/admin/orders`, {
-        headers: {
-          "x-admin-key": adminKey,
-        },
-      });
-
-      if (resp.status === 401) {
-        ordersDiv.textContent = "Unauthorized – wrong admin key.";
-        return;
-      }
-
-      const data = await resp.json();
-      ordersDiv.innerHTML = "";
-
-      if (!data.orders || data.orders.length === 0) {
-        ordersDiv.textContent = "No pending orders.";
-        return;
-      }
-
-      data.orders.forEach((order) => {
-        const wrapper = document.createElement("div");
-        wrapper.style.border = "1px solid #ccc";
-        wrapper.style.padding = "8px";
-        wrapper.style.margin = "8px 0";
-
-        const header = document.createElement("div");
-        const noteText = order.note ? `<br/><em>Note: ${order.note}</em>` : "";
-        header.innerHTML = `
-          <strong>Order #${order.order_id}</strong><br/>
-          ${order.customer_name} (${order.phone})<br/>
-          ${order.address}<br/>
-          ${order.created_at}
-          ${noteText}
-        `;
-        wrapper.appendChild(header);
-
-        const list = document.createElement("ul");
-        order.items.forEach((item) => {
-          const li = document.createElement("li");
-          const flavour = item.flavour ? ` (${item.flavour})` : "";
-          li.textContent = `${item.product_name}${flavour} x ${item.quantity} – ₹${item.line_total}`;
-          list.appendChild(li);
-        });
-        wrapper.appendChild(list);
-
-        const doneBtn = document.createElement("button");
-        doneBtn.textContent = "Mark as completed";
-        doneBtn.onclick = async () => {
-          await fetch(
-            `${API_BASE}/api/admin/orders/${order.order_id}/complete`,
-            {
-              method: "POST",
-              headers: {
-                "x-admin-key": adminKey,
-              },
-            }
-          );
-          loadOrdersAndAnalytics();
-        };
-        wrapper.appendChild(doneBtn);
-
-        ordersDiv.appendChild(wrapper);
-      });
-    }
-
-    async function loadAnalytics(adminKey) {
-      const summaryDiv = document.getElementById("analytics-summary");
-      const weeksDiv = document.getElementById("analytics-weeks");
-      const productsDiv = document.getElementById("analytics-products");
-
-      summaryDiv.textContent = "Loading analytics...";
-      weeksDiv.innerHTML = "";
-      productsDiv.innerHTML = "";
-
+    async function loadOrders() {
+      setMessage("");
+      const params = new URLSearchParams();
       const fromDate = document.getElementById("from-date").value;
       const toDate = document.getElementById("to-date").value;
-
-      const params = new URLSearchParams();
       if (fromDate) params.append("from_date", fromDate);
       if (toDate) params.append("to_date", toDate);
 
-      const url =
-        params.toString().length > 0
-          ? `${API_BASE}/api/admin/analytics?${params.toString()}`
-          : `${API_BASE}/api/admin/analytics`;
-
-      const resp = await fetch(url, {
-        headers: {
-          "x-admin-key": adminKey,
-        },
+      const url = `${API_BASE}/api/admin/orders`;
+      const resp = await fetch(params.toString() ? `${url}?${params}` : url, {
+        headers: getAuthHeaders(),
       });
 
-      if (resp.status === 401) {
-        summaryDiv.textContent = "Unauthorized – wrong admin key.";
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        setMessage(data.detail || "Error loading orders");
+        document.getElementById("orders-container").innerHTML = "";
         return;
       }
 
       const data = await resp.json();
-
-      const totalOrders = data.summary.total_orders;
-      const totalRevenue = data.summary.total_revenue;
-      summaryDiv.textContent = `Total orders: ${totalOrders} | Total revenue: ₹${totalRevenue}`;
-
-      if (data.orders_per_week && data.orders_per_week.length > 0) {
-        const table = document.createElement("table");
-        table.border = "1";
-        const headerRow = document.createElement("tr");
-        ["Week starting", "Orders", "Revenue"].forEach((h) => {
-          const th = document.createElement("th");
-          th.textContent = h;
-          headerRow.appendChild(th);
-        });
-        table.appendChild(headerRow);
-
-        data.orders_per_week.forEach((row) => {
-          const tr = document.createElement("tr");
-          const tdWeek = document.createElement("td");
-          tdWeek.textContent = row.week_start;
-          const tdCount = document.createElement("td");
-          tdCount.textContent = row.order_count;
-          const tdRev = document.createElement("td");
-          tdRev.textContent = `₹${row.revenue}`;
-          tr.appendChild(tdWeek);
-          tr.appendChild(tdCount);
-          tr.appendChild(tdRev);
-          table.appendChild(tr);
-        });
-
-        weeksDiv.appendChild(table);
-      } else {
-        weeksDiv.textContent = "No data yet.";
-      }
-
-      if (data.top_products && data.top_products.length > 0) {
-        const table = document.createElement("table");
-        table.border = "1";
-        const headerRow = document.createElement("tr");
-        ["Product", "Quantity sold", "Revenue"].forEach((h) => {
-          const th = document.createElement("th");
-          th.textContent = h;
-          headerRow.appendChild(th);
-        });
-        table.appendChild(headerRow);
-
-        data.top_products.forEach((p) => {
-          const tr = document.createElement("tr");
-          const tdName = document.createElement("td");
-          const flavour = p.flavour ? ` (${p.flavour})` : "";
-          tdName.textContent = `${p.product_name}${flavour}`;
-          const tdQty = document.createElement("td");
-          tdQty.textContent = p.total_quantity;
-          const tdRev = document.createElement("td");
-          tdRev.textContent = `₹${p.total_revenue}`;
-          tr.appendChild(tdName);
-          tr.appendChild(tdQty);
-          tr.appendChild(tdRev);
-          table.appendChild(tr);
-        });
-
-        productsDiv.appendChild(table);
-      } else {
-        productsDiv.textContent = "No data yet.";
-      }
+      renderOrders(data.orders || []);
     }
 
-    document
-      .getElementById("load-btn")
-      .addEventListener("click", () => loadOrdersAndAnalytics());
+    function renderOrders(orders) {
+      const container = document.getElementById("orders-container");
+      container.innerHTML = "";
+
+      if (!orders.length) {
+        container.textContent = "No pending orders.";
+        return;
+      }
+
+      orders.forEach((order) => {
+        const card = document.createElement("div");
+        card.className = "order-card";
+
+        const title = document.createElement("h3");
+        title.textContent = `Order #${order.order_id}`;
+        card.appendChild(title);
+
+        const nameLine = document.createElement("p");
+        nameLine.className = "order-line";
+        nameLine.textContent = `${order.customer_name} (${order.phone})`;
+        card.appendChild(nameLine);
+
+        const addrLine = document.createElement("p");
+        addrLine.className = "order-line";
+        addrLine.textContent = order.address;
+        card.appendChild(addrLine);
+
+        const dateLine = document.createElement("p");
+        dateLine.className = "order-line";
+        dateLine.textContent = order.created_at;
+        card.appendChild(dateLine);
+
+        if (order.note) {
+          const noteLine = document.createElement("p");
+          noteLine.className = "order-line";
+          noteLine.textContent = `Note: ${order.note}`;
+          card.appendChild(noteLine);
+        }
+
+        const ul = document.createElement("ul");
+        ul.className = "order-items";
+        order.items.forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = `${item.product_name} x${item.quantity} - Rs.${item.line_total}/-`;
+          ul.appendChild(li);
+        });
+        card.appendChild(ul);
+
+        const btn = document.createElement("button");
+        btn.className = "complete-btn";
+        btn.textContent = "Mark as completed";
+        btn.onclick = () => completeOrder(order.order_id);
+        card.appendChild(btn);
+
+        container.appendChild(card);
+      });
+    }
+
+    async function completeOrder(orderId) {
+      setMessage("");
+      const resp = await fetch(
+        `${API_BASE}/api/admin/orders/${orderId}/complete`,
+        {
+          method: "POST",
+          headers: getAuthHeaders(),
+        }
+      );
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (!resp.ok) {
+        setMessage(data.detail || data.error || "Error completing order");
+        return;
+      }
+
+      setMessage(data.message || "Order completed");
+      await loadOrders();
+      await loadAnalytics();
+    }
+
+    async function loadAnalytics() {
+      const params = new URLSearchParams();
+      const fromDate = document.getElementById("from-date").value;
+      const toDate = document.getElementById("to-date").value;
+      if (fromDate) params.append("from_date", fromDate);
+      if (toDate) params.append("to_date", toDate);
+
+      const url = `${API_BASE}/api/admin/analytics`;
+      const resp = await fetch(params.toString() ? `${url}?${params}` : url, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        setMessage(data.detail || "Error loading analytics");
+        return;
+      }
+
+      const data = await resp.json();
+      renderAnalytics(data);
+    }
+
+    function renderAnalytics(data) {
+      const summary = data.summary || { total_orders: 0, total_revenue: 0 };
+      const summaryDiv = document.getElementById("analytics-summary");
+      summaryDiv.innerHTML = `
+        <p>Total Orders: ${summary.total_orders}</p>
+        <p>Total Revenue: Rs.${summary.total_revenue}/-</p>
+      `;
+
+      const weeklyBody = document
+        .getElementById("weekly-table")
+        .querySelector("tbody");
+      weeklyBody.innerHTML = "";
+      (data.orders_per_week || []).forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.week_start}</td>
+          <td style="text-align:center;">${row.order_count}</td>
+          <td>Rs.${row.revenue}/-</td>
+        `;
+        weeklyBody.appendChild(tr);
+      });
+
+      const productsBody = document
+        .getElementById("products-table")
+        .querySelector("tbody");
+      productsBody.innerHTML = "";
+      (data.top_products || []).forEach((row) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${row.product_name} ${row.flavour ? "(" + row.flavour + ")" : ""}</td>
+          <td style="text-align:center;">${row.total_quantity}</td>
+          <td>Rs.${row.total_revenue}/-</td>
+        `;
+        productsBody.appendChild(tr);
+      });
+    }
+
+    async function loadAll() {
+      await loadOrders();
+      await loadAnalytics();
+    }
   </script>
 </body>
 </html>
