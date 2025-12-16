@@ -1,7 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
-from database import get_connection
-from config import (
+from .database import get_connection
+from .config import (
     EMAIL_HOST,
     EMAIL_PORT,
     EMAIL_USER,
