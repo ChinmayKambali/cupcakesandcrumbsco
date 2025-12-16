@@ -48,9 +48,13 @@ class PaymentOrderIn(BaseModel):
 
 app = FastAPI()
 
+origins = [
+    "https://cupcakesandcrumbsco.vercel.app",  # Vercel frontend
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,        # or ["*"] during testing only
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
