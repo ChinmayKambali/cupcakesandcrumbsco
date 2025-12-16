@@ -1,5 +1,5 @@
 import razorpay
-from config import RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
+from .config import RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET
 
 if not (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET):
     client = None
