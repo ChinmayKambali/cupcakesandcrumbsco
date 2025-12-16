@@ -1,20 +1,14 @@
-import smtplib
-from email.mime.text import MIMEText
+import os
+import resend
 from .database import get_connection
-from .config import (
-    EMAIL_HOST,
-    EMAIL_PORT,
-    EMAIL_USER,
-    EMAIL_PASS,
-    EMAIL_FROM,
-    EMAIL_TO,
-)
+from .config import EMAIL_FROM, EMAIL_TO  # keep if you already define them in config.py
+
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+resend.api_key = RESEND_API_KEY
 
 
 def build_order_email_body(order_id: int) -> str:
-    """
-    Build a simple text summary of the order using data from the database.
-    """
+    # keep your existing implementation exactly as it is
     conn = get_connection()
     cur = conn.cursor()
 
@@ -74,21 +68,18 @@ def build_order_email_body(order_id: int) -> str:
 
 def send_order_email(order_id: int) -> None:
     """
-    Send an email notification for the given order id.
+    New version: same signature as your old code (takes order_id),
+    but sends via Resend using the text body built above.
     """
-    if not (EMAIL_HOST and EMAIL_USER and EMAIL_PASS and EMAIL_FROM and EMAIL_TO):
-        # Missing config; skip sending to avoid crashes.
-        return
+    if not RESEND_API_KEY or not EMAIL_FROM or not EMAIL_TO:
+        return  # avoid crashing if not configured
 
     body = build_order_email_body(order_id)
-    subject = f"New order #{order_id} – Cupcakes & Crumbs Co"
+    subject = f"New order #{order_id}"
 
-    msg = MIMEText(body)
-    msg["Subject"] = subject
-    msg["From"] = EMAIL_FROM
-    msg["To"] = EMAIL_TO
-
-    with smtplib.SMTP(EMAIL_HOST, EMAIL_PORT) as server:
-        server.starttls()
-        server.login(EMAIL_USER, EMAIL_PASS)
-        server.send_message(msg)
+    resend.Emails.send({
+        "from": EMAIL_FROM,
+        "to": [EMAIL_TO],
+        "subject": subject,
+        "text": body,  # plain text is fine here
+    })
