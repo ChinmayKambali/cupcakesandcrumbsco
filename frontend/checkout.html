@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cupcakes & Crumbs Co – Checkout</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 40px 60px;
+      font-family: "Gochi Hand", system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #ffe1ec 0%, #ffd3e0 40%, #f9c1d0 100%);
+      color: #2b1b1f;
+      box-sizing: border-box;
+    }
+
+    .page {
+      border: 2px solid #b98ad0;
+      padding: 30px 40px 40px;
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255, 250, 252, 0.7);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      letter-spacing: 1px;
+    }
+
+    .back-link {
+      cursor: pointer;
+      font-size: 18px;
+      text-decoration: underline;
+    }
+
+    h2 {
+      margin: 0 0 18px;
+      font-size: 26px;
+    }
+
+    .cart-row {
+      display: grid;
+      grid-template-columns: 2fr auto auto auto;
+      column-gap: 12px;
+      margin-bottom: 8px;
+      font-size: 20px;
+      align-items: center;
+    }
+
+    .cart-name {
+      white-space: nowrap;
+    }
+
+    .cart-qty {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-start;  /* move content (and header text) left */
+      min-width: 90px;              /* gives QTY its own space */
+    }
+
+    .qty-button {
+      padding: 0 8px;
+      border: 1px solid #444;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 16px;
+    }
+
+    .qty-button:hover {
+      background: #ffd8e6;
+    }
+
+    .cart-price,
+    .cart-line-total {
+      white-space: nowrap;
+      text-align: right;
+      padding-left: 12px;           /* small gap between QTY and MRP/AMOUNT */
+    }
+
+    .cart-header {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .section {
+      margin-top: 32px;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px 40px;
+      font-size: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      padding: 4px 6px;
+      font-family: inherit;
+      font-size: 18px;
+      border: 1px solid #444;
+      background: transparent;
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    .pay-button {
+      margin-top: 26px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 4px 18px;
+      border: 1px solid #444;
+      background: transparent;
+      font-family: inherit;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .pay-button:hover {
+      background: #ffd8e6;
+    }
+
+    #order-result {
+      margin-top: 16px;
+      font-size: 18px;
+      text-align: center;
+      min-height: 22px;
+    }
+
+    .total-line {
+      margin-top: 32px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+  </style>
+
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Checkout</h1>
+      <div class="back-link" onclick="goBackToMenu()">&larr; Back to Menu</div>
+    </header>
+
+    <div class="section">
+      <h2>Your Cart</h2>
+      <div id="cart"></div>
+      <div class="total-line" id="cart-total"></div>
+    </div>
+
+    <div class="section">
+      <h2>Your Details</h2>
+      <form id="order-form">
+        <div class="details-grid">
+          <div>
+            <label for="customer-name">Full Name:</label>
+            <input type="text" id="customer-name" required />
+          </div>
+          <div>
+            <label for="address">Address:</label>
+            <textarea id="address" rows="2" required></textarea>
+          </div>
+          <div>
+            <label for="phone">Phone: +91</label>
+            <input type="text" id="phone" required />
+          </div>
+          <div>
+            <label for="note">Note for Baker (optional):</label>
+            <textarea id="note" rows="2"></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="pay-button">Pay &amp; Place Order</button>
+      </form>
+
+      <p id="order-result"></p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000"; // change to Render URL after deploy
+
+    let products = [];
+    let cart = {}; // product_id -> qty
+
+    function goBackToMenu() {
+      window.location.href = "menu.html";
+    }
+
+    function getCart() {
+      const raw = localStorage.getItem("ccc_cart");
+      if (!raw) return {};
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return {};
+      }
+    }
+
+    function setCart(newCart) {
+      cart = newCart;
+      localStorage.setItem("ccc_cart", JSON.stringify(cart));
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartDiv = document.getElementById("cart");
+      const totalDiv = document.getElementById("cart-total");
+      cartDiv.innerHTML = "";
+
+      let total = 0;
+
+      const entries = Object.entries(cart);
+      if (entries.length === 0) {
+        cartDiv.textContent = "Your cart is empty.";
+        totalDiv.textContent = "";
+        return;
+      }
+
+      // Header row
+      const header = document.createElement("div");
+      header.className = "cart-row cart-header";
+
+      const hName = document.createElement("div");
+      hName.className = "cart-name";
+      hName.textContent = "Item";
+
+      const hQty = document.createElement("div");
+      hQty.className = "cart-qty";
+      hQty.textContent = "QTY";
+
+      const hPrice = document.createElement("div");
+      hPrice.className = "cart-price";
+      hPrice.innerHTML = "&nbsp; MRP";
+
+      const hLine = document.createElement("div");
+      hLine.className = "cart-line-total";
+      hLine.innerHTML = "&nbsp; AMOUNT";
+
+      header.appendChild(hName);
+      header.appendChild(hQty);
+      header.appendChild(hPrice);
+      header.appendChild(hLine);
+      cartDiv.appendChild(header);
+
+      // Product rows
+      entries.forEach(([productId, qty]) => {
+        const prod = products.find((p) => p.id === Number(productId));
+        if (!prod) return;
+
+        const lineTotal = prod.price * qty;
+        total += lineTotal;
+
+        const row = document.createElement("div");
+        row.className = "cart-row";
+
+        const nameDiv = document.createElement("div");
+        nameDiv.className = "cart-name";
+        const flavourText = prod.flavour ? `${prod.flavour} ` : "";
+        const packText = prod.pack_size ? `(pack of ${prod.pack_size})` : "";
+        nameDiv.textContent = `${flavourText}${prod.name} ${packText}`.trim();
+
+        const qtyDiv = document.createElement("div");
+        qtyDiv.className = "cart-qty";
+
+        const minusBtn = document.createElement("button");
+        minusBtn.className = "qty-button";
+        minusBtn.textContent = "-";
+        minusBtn.onclick = () => {
+          const current = cart[productId] || 0;
+          if (current <= 1) {
+            delete cart[productId];
+          } else {
+            cart[productId] = current - 1;
+          }
+          setCart({ ...cart });
+        };
+
+        const qtySpan = document.createElement("span");
+        qtySpan.textContent = qty;
+
+        const plusBtn = document.createElement("button");
+        plusBtn.className = "qty-button";
+        plusBtn.textContent = "+";
+        plusBtn.onclick = () => {
+          cart[productId] = (cart[productId] || 0) + 1;
+          setCart({ ...cart });
+        };
+
+        qtyDiv.appendChild(minusBtn);
+        qtyDiv.appendChild(qtySpan);
+        qtyDiv.appendChild(plusBtn);
+
+        const priceDiv = document.createElement("div");
+        priceDiv.className = "cart-price";
+        priceDiv.textContent = `Rs. ${prod.price}/-`;
+
+        const lineDiv = document.createElement("div");
+        lineDiv.className = "cart-line-total";
+        lineDiv.textContent = `Rs. ${lineTotal}/-`;
+
+        row.appendChild(nameDiv);
+        row.appendChild(qtyDiv);
+        row.appendChild(priceDiv);
+        row.appendChild(lineDiv);
+
+        cartDiv.appendChild(row);
+      });
+
+      totalDiv.textContent = `Total: Rs. ${total}/-`;
+    }
+
+    async function loadMenuForCheckout() {
+      const resp = await fetch(`${API_BASE}/api/menu`);
+      const data = await resp.json();
+      products = data.items || [];
+      cart = getCart();
+      renderCart();
+    }
+
+    async function submitOrder(event) {
+      event.preventDefault();
+      const resultP = document.getElementById("order-result");
+      resultP.textContent = "";
+
+      const items = Object.entries(cart).map(([productId, qty]) => ({
+        product_id: Number(productId),
+        quantity: qty,
+      }));
+
+      if (items.length === 0) {
+        resultP.textContent = "Your cart is empty.";
+        return;
+      }
+
+      const customer_name = document.getElementById("customer-name").value;
+      const phone = document.getElementById("phone").value;
+      const address = document.getElementById("address").value;
+      const note = document.getElementById("note").value;
+
+      const paymentResp = await fetch(`${API_BASE}/api/payment/order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer_name,
+          phone,
+          address,
+          note,
+          items,
+        }),
+      });
+
+      const paymentData = await paymentResp.json();
+
+      if (!paymentResp.ok) {
+        let msg = "Error creating payment order.";
+        if (
+          paymentData.detail &&
+          Array.isArray(paymentData.detail) &&
+          paymentData.detail.length > 0
+        ) {
+          const rawMsg = paymentData.detail[0].msg || "";
+          msg = rawMsg.split(",").pop().trim() || msg;
+        } else if (paymentData.error) {
+          msg = paymentData.error;
+        }
+        resultP.textContent = "Error: " + msg;
+        return;
+      }
+
+      if (paymentData.error) {
+        resultP.textContent = "Error: " + paymentData.error;
+        return;
+      }
+
+      const { razorpay_key_id, razorpay_order_id, amount, currency } =
+        paymentData;
+
+      const options = {
+        key: razorpay_key_id,
+        amount: amount * 100,
+        currency: currency,
+        name: "Cupcakes & Crumbs Co",
+        description: "Order payment",
+        order_id: razorpay_order_id,
+        prefill: {
+          name: customer_name,
+          contact: phone,
+        },
+        theme: {
+          color: "#ff8fb1",
+        },
+        method: {
+          upi: true,
+          card: false,
+          netbanking: false,
+          wallet: false,
+          emi: false,
+          paylater: false,
+        },
+        handler: async function (response) {
+          const orderResp = await fetch(`${API_BASE}/api/orders`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              customer_name,
+              phone,
+              address,
+              note,
+              items,
+            }),
+          });
+          const orderData = await orderResp.json();
+
+          if (!orderResp.ok || orderData.error) {
+            resultP.textContent =
+              "Payment succeeded but error saving order: " +
+              (orderData.error || "Unknown error");
+            return;
+          }
+
+          resultP.textContent = `Payment successful! Order placed. Your order ID is ${orderData.order_id}.`;
+          cart = {};
+          localStorage.removeItem("ccc_cart");
+          renderCart();
+          document.getElementById("order-form").reset();
+          document.getElementById("note").value = "";
+        },
+        modal: {
+          ondismiss: function () {
+            resultP.textContent = "Payment cancelled.";
+          },
+        },
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+    }
+
+    document
+      .getElementById("order-form")
+      .addEventListener("submit", submitOrder);
+
+    loadMenuForCheckout();
+  </script>
+</body>
+</html>

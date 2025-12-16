@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cupcakes & Crumbs Co – Menu</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gochi+Hand&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 40px 60px;
+      font-family: "Gochi Hand", system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top left, #ffe1ec 0%, #ffd3e0 40%, #f9c1d0 100%);
+      color: #2b1b1f;
+      box-sizing: border-box;
+    }
+
+    .page {
+      border: 2px solid #b98ad0;
+      padding: 30px 40px 40px;
+      max-width: 900px;
+      margin: 0 auto;
+      background: rgba(255, 250, 252, 0.7);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 32px;
+      letter-spacing: 1px;
+    }
+
+    h2 {
+      margin: 0 0 20px;
+      font-size: 26px;
+    }
+
+    .cart-link {
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cart-link span {
+      font-size: 14px;
+    }
+
+    .cart-icon {
+      font-size: 22px;
+    }
+
+    .menu-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      column-gap: 16px;
+      margin-bottom: 10px;
+      align-items: center;
+      font-size: 20px;
+    }
+
+    .menu-name {
+      white-space: nowrap;
+    }
+
+    .menu-price {
+      white-space: nowrap;
+    }
+
+    .menu-button {
+      padding: 2px 10px;
+      border: 1px solid #444;
+      background: transparent;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 16px;
+    }
+
+    .menu-button:hover {
+      background: #ffd8e6;
+    }
+
+    #message {
+      margin-top: 16px;
+      font-size: 16px;
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Cupcakes &amp; Crumbs Co</h1>
+      <div class="cart-link" onclick="goToCheckout()">
+        <span class="cart-icon">🛒</span>
+        <span id="cart-count-text">Cart (0)</span>
+      </div>
+    </header>
+
+    <h2>Menu</h2>
+    <div id="menu"></div>
+
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000"; // change to Render URL after deploy
+
+    let products = [];
+
+    function getCart() {
+      const raw = localStorage.getItem("ccc_cart");
+      if (!raw) return {};
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return {};
+      }
+    }
+
+    function setCart(cart) {
+      localStorage.setItem("ccc_cart", JSON.stringify(cart));
+      updateCartCount(cart);
+    }
+
+    function updateCartCount(cart) {
+      const count = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+      document.getElementById("cart-count-text").textContent = `Cart (${count})`;
+    }
+
+    function renderMenu() {
+      const container = document.getElementById("menu");
+      container.innerHTML = "";
+
+      const cart = getCart();
+
+      products.forEach((item) => {
+        const row = document.createElement("div");
+        row.className = "menu-row";
+
+        const nameSpan = document.createElement("div");
+        nameSpan.className = "menu-name";
+        const flavourText = item.flavour ? `${item.flavour} ` : "";
+        const packText = item.pack_size ? `(pack of ${item.pack_size})` : "";
+        nameSpan.textContent = `${flavourText}${item.name} ${packText}`.trim();
+
+        const priceSpan = document.createElement("div");
+        priceSpan.className = "menu-price";
+        priceSpan.textContent = `${item.price}/-`;
+
+        const button = document.createElement("button");
+        button.className = "menu-button";
+        button.textContent = "Add to cart";
+        button.onclick = () => {
+          const currentCart = getCart();
+          const current = currentCart[item.id] || 0;
+          currentCart[item.id] = current + 1;
+          setCart(currentCart);
+          showMessage("Added to cart");
+        };
+
+        row.appendChild(nameSpan);
+        row.appendChild(priceSpan);
+        row.appendChild(button);
+
+        container.appendChild(row);
+      });
+
+      updateCartCount(cart);
+    }
+
+    function showMessage(text) {
+      const msg = document.getElementById("message");
+      msg.textContent = text;
+      setTimeout(() => {
+        if (msg.textContent === text) msg.textContent = "";
+      }, 1500);
+    }
+
+    async function loadMenu() {
+      const resp = await fetch(`${API_BASE}/api/menu`);
+      const data = await resp.json();
+      products = data.items || [];
+      renderMenu();
+    }
+
+    function goToCheckout() {
+      window.location.href = "checkout.html";
+    }
+
+    loadMenu();
+  </script>
+</body>
+</html>
