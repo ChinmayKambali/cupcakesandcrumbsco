@@ -4,9 +4,9 @@ from pydantic import BaseModel, validator
 from typing import List, Dict, Any, Optional
 from datetime import date
 from .database import get_connection
-from email_utils import send_order_email
+from .email_utils import send_order_email
 from config import ADMIN_KEY, RAZORPAY_KEY_ID
-from payment_utils import create_razorpay_order
+from .payment_utils import create_razorpay_order
 
 
 class OrderItemIn(BaseModel):
